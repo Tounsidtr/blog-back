@@ -14,13 +14,33 @@ router.post("/signup", async (req, res) => {
 
 
   if (!checkBody(req.body, ["username", "email", "password"])) {
+
     return res
       .status(400)
       .json({ result: false, error: "Missing or empty fields." });
   }
 
+const emailRegexValidation = /^\S+@\S+\.\S+$/;
+  const passwordRegexValidation =
+    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+
+if (!emailRegexValidation.test(email)) {
+    return res
+      .status(400)
+      .json({ result: false, error: "Please enter a valid email." });
+  }
+  if (!passwordRegexValidation.test(password)) {
+    return res.status(500).json({
+      result: false,
+      error:
+        "Please enter Minimum 8 characters, at least 1 uppercase letter, 1 lowercase letter, 1 number and 1 special character.",
+    });
+  }
+
+
   User.findOne({
-    email: { $regex: new RegExp(username, "i") },
+    email: email 
+    // { $regex: new RegExp(username, "i") }
   }).then((data) => {
     if (data === null) {
       const hash = bcrypt.hashSync(password, 10);
@@ -28,7 +48,7 @@ router.post("/signup", async (req, res) => {
       const newUser = new User({
         username,
         password: hash,
-        email
+        email,
       });
 
       newUser.save().then((data) => {
@@ -51,26 +71,48 @@ router.post("/signup", async (req, res) => {
             sameSite: "strict",
             maxAge: 24 * 60 * 60 * 1000,
           })
+          .status(201)
           .json({
             result: true,
             data,
+            message: "Inscription réussie",
           });
       });
     } else {
       // User already exists in database
-      res.json({ result: false, error: "User already exists !" });
+      // res.json({ result: false, error: "User already exists !" });
+      res.status(400).json({ result: false, error: "User already exists !" });
     }
   });
 });
 
 // Route pour la connexion
 router.post("/signin", async (req, res) => {
-  const { username, password } = req.body;
-  if (!checkBody(req.body, ["username", "password"])) {
+  const { email, password } = req.body;
+  if (!checkBody(req.body, ["email", "password"])) {
     return res
       .status(400)
       .json({ result: false, error: "Missing or empty fields." });
   }
+
+  
+const emailRegexValidation = /^\S+@\S+\.\S+$/;
+  const passwordRegexValidation =
+    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+
+if (!emailRegexValidation.test(email)) {
+    return res
+      .status(400)
+      .json({ result: false, error: "Please enter a valid email." });
+  }
+  if (!passwordRegexValidation.test(password)) {
+    return res.status(500).json({
+      result: false,
+      error:
+        "Please enter Minimum 8 characters, at least 1 uppercase letter, 1 lowercase letter, 1 number and 1 special character.",
+    });
+  }
+
 
   User.findOne(
     { email: req.body.email }
@@ -113,5 +155,6 @@ router.post("/logout", (req, res) => {
   res.clearCookie("jwt");
   res.json({ result: true });
 });
+
 
 module.exports = router;

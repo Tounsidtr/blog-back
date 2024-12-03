@@ -16,7 +16,12 @@ require("./models/connection")
 
 const cors = require('cors');
 
-app.use(cors());
+app.use(cors({
+    origin: 'http://localhost:3000', // Assurez-vous que le frontend peut accéder au backend
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],  // Autorisez les méthodes que vous utilisez
+    credentials: true, // Assurez-vous que les cookies sont envoyés
+    allowedHeaders: ['Content-Type', 'Authorization'],     
+  }));
 
 app.use(logger('dev'));
 app.use(express.json());

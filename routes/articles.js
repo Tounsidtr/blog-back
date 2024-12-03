@@ -1,6 +1,6 @@
 const { checkBody } = require("../modules/checkBody");
 const Article = require("../models/articles");
-const User = require("../models/articles");
+const User = require("../models/users");
 var express = require("express");
 var router = express.Router();
 const { auth } = require("../middleware/auth");
@@ -24,39 +24,36 @@ router.get("/:articleId", async (req, res) => {
 });
 
 router.post("/create", auth, async (req, res) => {
-    const { title, image, content } = req.body;
-    if (!checkBody(req.body, ["title", "content"])) {
-        return res
-            .status(400)
-            .json({ result: false, error: "Missing or empty fields." });
+    const { title, imageUrl, content } = req.body;
+    const userId = req.user.id;
+    
+    
+    if (!title || !content || !imageUrl) {
+      return res.status(400).json({ message: 'Tous les champs sont nécessaires.' });
     }
-    let objArticle = {};
-    if (image) {
-        objArticle = {
-            title,
-            image,
-            content,
-            author: req.user.id,
-        };
-    } else {
-        objArticle = {
-            title,
-            content,
-            author: req.user.id,
-        };
+  
+    try {
+      const newArticle = new Article({
+        title,
+        content,
+        image: imageUrl,
+        author: userId,
+      });
+  
+      await newArticle.save();
+      const article = await Article.find().populate("author")
+      res.status(201).json({ message: 'Article créé avec succès', data: article});
+    } catch (error) {
+      res.status(500).json({ message: 'Erreur lors de la création de l\'article' });
     }
-    const newArticle = new Article(objArticle);
-    await newArticle.save()
-    const data = await Article.find()
-        .populate("author")
-    res.json({ result: true, data });
-});
+  });
+  
 
 router.put("/:articleId", auth, async (req, res) => {
     const data = await Article.findById(req.params.articleId)
         .populate("author")
     if (data) {
-        const { title, image, content } = req.body;
+        const { title, imageUrl, content } = req.body;
         if (!checkBody(req.body, ["title", "content"])) {
             return res
                 .status(400)
@@ -70,7 +67,7 @@ router.put("/:articleId", auth, async (req, res) => {
                 {
                     $set: {
                         title,
-                        image,
+                        image: imageUrl,
                         content,
                         updateDatetime: Date.now(),
                     },
